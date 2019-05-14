@@ -65,6 +65,8 @@ for r in cursor.fetchall():
 cursor.close()
 conn.close()
 
+items.sort(key=lambda i: i['published'], reverse = True)
+
 for item in items:
     print(item)
 
