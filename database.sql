@@ -1,0 +1,1 @@
+create table feeds(id INTEGER PRIMARY KEY, url TEXT, updated INTEGER, name TEXT)
