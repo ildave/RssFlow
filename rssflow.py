@@ -47,8 +47,10 @@ conn.row_factory = sqlite3.Row
 cursor = conn.cursor()
 cursor.execute('select * from feeds')
 items = []
+sources = {}
 for r in cursor.fetchall():
     print(r['url'])
+    sources[r['id']] = r['updated']
     parsed = feedparser.parse(r['url'])
     if parsed.feed.has_key('title'):
         print(parsed.feed.title)
@@ -63,10 +65,26 @@ for r in cursor.fetchall():
     print('='*40)
 
 cursor.close()
-conn.close()
+
 
 items.sort(key=lambda i: i['published'], reverse = True)
 
-for item in items:
-    print(item)
+print(len(items), " items")
 
+for item in items:
+    if item['published'] > sources[item['feedid']]:
+         sources[item['feedid']] = item['published']
+    print(item['description'])
+    print('='*40)
+
+
+print(sources)
+
+for feedid, updated in sources.items():
+    cursor = conn.cursor()
+    cursor.execute('update feeds set updated = ? where id = ?', (int(updated), int(feedid)))
+    conn.commit()
+    cursor.close()
+
+
+conn.close()
