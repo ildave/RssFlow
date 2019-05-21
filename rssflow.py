@@ -10,8 +10,10 @@ import datetime
 import sqlite3
 from xml.dom.minidom import parse
 import argparse
+import logging
 
 def load_opml(opml, conn):
+    logger.info('opml file: {}'.format(opml))
     dom = parse(opml)
     outlines = dom.getElementsByTagName('outline')
 
@@ -23,22 +25,25 @@ def load_opml(opml, conn):
             feedname = o.getAttribute('title')
             try:
                 response = requests.head(url)
-                print(url, response.status_code)
+                logging.debug('<{}> - response code: {}'.format(url, response.status_code))
                 if response.status_code < 400:
                     feed = {'url': url, 'name': feedname}
                     feeds.append(feed)
+                else:
+                    logging.info('[{}] - <{}> - Link is broken'.format(feedname, url))
             except:
-                pass
+                logging.warning('Error while retrieving <{}>'.format(url))
 
     print("="*60)
     
 
-    now = 1557738000
+    now = time.time() - 60*60*24 #default to yesterday
     for f in feeds:
         print(f)
         url = f['url']
         feedname = f['name']
         cursor = conn.cursor()
+        logging.debug('Execute query: [insert into feeds(url, updated, feedname) values({}, {}, {})]'.format(url, now, feedname))
         cursor.execute("insert into feeds(url, updated, feedname) values(?, ?, ?)", (url, now, feedname))
         conn.commit()
         cursor.close()
@@ -50,11 +55,14 @@ def strip_html(src):
     return u" ".join(text)
 
 def refresh(conn):
+    cursor = conn.execute("select count(*) FROM feeds")
+    n = cursor.fetchone()[0]
+    cursor.close()
+    logging.info('{} feeds to refresh'.format(n))
     cursor = conn.execute('select * from feeds')
     items = []
     for row in cursor.fetchall():
-        print('[{}] <{}>'.format(row['feedname'], row['url']))
-        print('.'*40)
+        logging.debug('[{}] <{}>'.format(row['feedname'], row['url']))
         parsed = feedparser.parse(row['url'])
         for e in parsed.entries:
             if 'published_parsed' in e:
@@ -68,14 +76,14 @@ def refresh(conn):
                     feed.feedtitle = row['feedname']
                     feed.feedurl = row['url']
                     items.append(feed)
-                    print('\t{}'.format(feed.link))
-                    print('\t{}'.format(feed.description))
-                    print('='*40)
-        print('*'*40)
+                    logging.debug('\t{}'.format(feed.link))
+                    logging.debug('\t{}'.format(feed.description))
     items.sort(key=lambda x: x.updated)
+    logging.info('{} items found'.format(len(items)))
     return items
 
 def update(items, now, conn):
+    logging.info('Updated value for feeds: {}'.format(datetime.datetime.fromtimestamp(now)))
     feedids = set()
     for i in items:
         feedids.add(i.feedid)
@@ -87,6 +95,8 @@ def update(items, now, conn):
         cursor.close()
 
 def main():
+    logging.basicConfig(level=logging.DEBUG)
+
     conn = sqlite3.connect('feeds.sqlite')
     conn.row_factory = sqlite3.Row
 
@@ -95,12 +105,12 @@ def main():
     parser.add_argument('--refresh', help='Refresh feeds', action='store_true')
     args = parser.parse_args()
     if args.load:
-        print(args.load)
+        logging.info('Load OPML')
         opml = args.load
         load_opml(opml, conn)
 
     if args.refresh:
-        print('Refresh feeds')
+        logging.info('Refresh feeds')
         now = time.time()
         items = refresh(conn)
         update(items, now, conn)
