@@ -62,7 +62,7 @@ def refresh(conn):
     cursor = conn.execute('select * from feeds')
     items = []
     for row in cursor.fetchall():
-        logging.debug('[{}] <{}>'.format(row['feedname'], row['url']))
+        logging.debug('Refreshing [{}] <{}>'.format(row['feedname'], row['url']))
         parsed = feedparser.parse(row['url'])
         for e in parsed.entries:
             if 'published_parsed' in e:
@@ -71,6 +71,8 @@ def refresh(conn):
                     feed = Feed(e.link)
                     if 'description' in e:
                         feed.description = strip_html(e.description)
+                    if 'title' in e:
+                        feed.title = e.title
                     feed.updated = published
                     feed.feedid = row['id']
                     feed.feedtitle = row['feedname']
@@ -79,7 +81,7 @@ def refresh(conn):
                     logging.debug('\t{}'.format(feed.link))
                     logging.debug('\t{}'.format(feed.description))
     items.sort(key=lambda x: x.updated)
-    logging.info('{} items found'.format(len(items)))
+    logging.info('{} new items found'.format(len(items)))
     return items
 
 def update(items, now, conn):
@@ -94,8 +96,19 @@ def update(items, now, conn):
         conn.commit()
         cursor.close()
 
+def show(items):
+    for i in items:
+        print('-'* 40)
+        print('|[{}] - {}'.format(i.feedtitle, i.title))
+        print('-'* 40)
+        print(i.description)
+        print('.'*40)
+        print('\t{}'.format(datetime.datetime.fromtimestamp(i.updated)))
+        print('\t[{}]'.format(i.link))
+        print('='*40)
+
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     conn = sqlite3.connect('feeds.sqlite')
     conn.row_factory = sqlite3.Row
@@ -114,10 +127,10 @@ def main():
         now = time.time()
         items = refresh(conn)
         update(items, now, conn)
+        show(items)
 
     conn.close()
 
 
 if __name__ == "__main__":
     main()
-
