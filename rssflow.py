@@ -90,21 +90,23 @@ def main():
     conn = sqlite3.connect('feeds.sqlite')
     conn.row_factory = sqlite3.Row
 
-    """
-    opml = 'feeds.opml'
-    load_opml(opml, conn)
-    """
-    now = time.time()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--load', help='Load a opml file and import it')
+    parser.add_argument('--refresh', help='Refresh feeds', action='store_true')
+    args = parser.parse_args()
+    if args.load:
+        print(args.load)
+        opml = args.load
+        load_opml(opml, conn)
 
-    items = refresh(conn)
-    for i in items:
-        print('<{}>\n{}'.format(i.description, i.link))
-        print('.'*40)
-
-    update(items, now, conn)
-
+    if args.refresh:
+        print('Refresh feeds')
+        now = time.time()
+        items = refresh(conn)
+        update(items, now, conn)
 
     conn.close()
+
 
 if __name__ == "__main__":
     main()
