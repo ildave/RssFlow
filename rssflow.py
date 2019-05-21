@@ -120,8 +120,6 @@ def show(items):
         print('='*40)
 
 def main():
-    logging.basicConfig(level=logging.INFO)
-
     conn = sqlite3.connect('feeds.sqlite')
     conn.row_factory = sqlite3.Row
 
@@ -129,7 +127,13 @@ def main():
     parser.add_argument('--load', help='Load a opml file and import it')
     parser.add_argument('--refresh', help='Refresh feeds', action='store_true')
     parser.add_argument('--add_feed', help='Add a new rss or atom feed')
+    parser.add_argument('-v', '--verbose', help='Verbose', action='store_true')
     args = parser.parse_args()
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+
     if args.load:
         logging.info('Load OPML')
         opml = args.load
