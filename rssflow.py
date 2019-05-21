@@ -78,7 +78,7 @@ def refresh(conn):
         for e in parsed.entries:
             if 'published_parsed' in e:
                 published = time.mktime(e.published_parsed)
-                logging.debug('Published: {} -  updated: {}'.format(published, row['updated']))
+                logging.debug('Published: {} -  updated: {}'.format(datetime.datetime.fromtimestamp(published), datetime.datetime.fromtimestamp(row['updated'])))
                 if 'link' in e and published > row['updated']:
                     feed = Feed(e.link)
                     if 'description' in e:
