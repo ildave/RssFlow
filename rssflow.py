@@ -9,6 +9,7 @@ import time
 import datetime
 import sqlite3
 from xml.dom.minidom import parse
+import argparse
 
 def load_opml(opml, conn):
     dom = parse(opml)
@@ -85,21 +86,26 @@ def update(items, now, conn):
         conn.commit()
         cursor.close()
 
-conn = sqlite3.connect('feeds.sqlite')
-conn.row_factory = sqlite3.Row
+def main():
+    conn = sqlite3.connect('feeds.sqlite')
+    conn.row_factory = sqlite3.Row
 
-"""
-opml = 'feeds.opml'
-load_opml(opml, conn)
-"""
-now = time.time()
+    """
+    opml = 'feeds.opml'
+    load_opml(opml, conn)
+    """
+    now = time.time()
 
-items = refresh(conn)
-for i in items:
-    print('<{}>\n{}'.format(i.description, i.link))
-    print('.'*40)
+    items = refresh(conn)
+    for i in items:
+        print('<{}>\n{}'.format(i.description, i.link))
+        print('.'*40)
 
-update(items, now, conn)
+    update(items, now, conn)
 
 
-conn.close()
+    conn.close()
+
+if __name__ == "__main__":
+    main()
+
