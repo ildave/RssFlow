@@ -92,6 +92,8 @@ def refresh(conn):
                     items.append(feed)
                     logging.debug('\t{}'.format(feed.link))
                     logging.debug('\t{}'.format(feed.description))
+
+                    show
     items.sort(key=lambda x: x.updated)
     logging.info('{} new items found'.format(len(items)))
     return items
@@ -109,17 +111,17 @@ def update(items, now, conn):
         cursor.close()
 
 def showAll(items):
-    for i in items:
+    for item in items:
         show(item)
-        
+
 def show(item):
     print('-'* 40)
-    print('|[{}] - {}'.format(i.feedtitle, i.title))
+    print('|[{}] - {}'.format(item.feedtitle, item.title))
     print('-'* 40)
-    print(i.description)
+    print(item.description)
     print('.'*40)
-    print('\t{}'.format(datetime.datetime.fromtimestamp(i.updated)))
-    print('\t[{}]'.format(i.link))
+    print('\t{}'.format(datetime.datetime.fromtimestamp(item.updated)))
+    print('\t[{}]'.format(item.link))
     print('='*40)
 
 def main():
