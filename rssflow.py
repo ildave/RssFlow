@@ -1,9 +1,11 @@
 #https://docs.python-guide.org/dev/virtualenvs/
-from feed import Feed 
+from feed import Feed
+from refresher import Refresher
+from shower import Shower
 
 import feedparser
 import requests
-from bs4 import BeautifulSoup, NavigableString
+
 
 import time
 import datetime
@@ -11,6 +13,7 @@ import sqlite3
 from xml.dom.minidom import parse
 import argparse
 import logging
+import queue
 
 def load_opml(opml, conn):
     logger.info('opml file: {}'.format(opml))
@@ -59,75 +62,11 @@ def add_feed(url, now, conn):
     conn.commit()
     cursor.close()
 
-def strip_html(src):
-    p = BeautifulSoup(src, features='html.parser')
-    text = p.findAll(text=lambda text:isinstance(text, NavigableString))
- 
-    return u" ".join(text)
-
-def refresh(conn):
-    cursor = conn.execute("select count(*) FROM feeds")
-    n = cursor.fetchone()[0]
-    cursor.close()
-    logging.info('{} feeds to refresh'.format(n))
-    cursor = conn.execute('select * from feeds')
-    items = []
-    for row in cursor.fetchall():
-        logging.debug('Refreshing [{}] <{}>'.format(row['feedname'], row['url']))
-        parsed = feedparser.parse(row['url'])
-        for e in parsed.entries:
-            if 'published_parsed' in e:
-                published = time.mktime(e.published_parsed)
-                logging.debug('Published: {} -  updated: {}'.format(datetime.datetime.fromtimestamp(published), datetime.datetime.fromtimestamp(row['updated'])))
-                if 'link' in e and published > row['updated']:
-                    feed = Feed(e.link)
-                    if 'description' in e:
-                        feed.description = strip_html(e.description)
-                    if 'title' in e:
-                        feed.title = e.title
-                    feed.updated = published
-                    feed.feedid = row['id']
-                    feed.feedtitle = row['feedname']
-                    feed.feedurl = row['url']
-                    items.append(feed)
-                    logging.debug('\t{}'.format(feed.link))
-                    logging.debug('\t{}'.format(feed.description))
-
-                    show
-    items.sort(key=lambda x: x.updated)
-    logging.info('{} new items found'.format(len(items)))
-    return items
-
-def update(items, now, conn):
-    logging.info('Updated value for feeds: {}'.format(datetime.datetime.fromtimestamp(now)))
-    feedids = set()
-    for i in items:
-        feedids.add(i.feedid)
-
-    for feedid in feedids:
-        cursor = conn.cursor()
-        cursor.execute("update feeds set updated = ? where id = ?", (now, feedid))
-        conn.commit()
-        cursor.close()
-
-def showAll(items):
-    for item in items:
-        show(item)
-
-def show(item):
-    print('-'* 40)
-    print('|[{}] - {}'.format(item.feedtitle, item.title))
-    print('-'* 40)
-    print(item.description)
-    print('.'*40)
-    print('\t{}'.format(datetime.datetime.fromtimestamp(item.updated)))
-    print('\t[{}]'.format(item.link))
-    print('='*40)
-
 def main():
+    
     conn = sqlite3.connect('feeds.sqlite')
     conn.row_factory = sqlite3.Row
-
+    
     parser = argparse.ArgumentParser()
     parser.add_argument('--load', help='Load a opml file and import it')
     parser.add_argument('--refresh', help='Refresh feeds', action='store_true')
@@ -137,20 +76,24 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.WARNING)
+    logger = logging.getLogger('main')
 
+    
     if args.load:
         logging.info('Load OPML')
         opml = args.load
         load_opml(opml, conn)
-
+    
     if args.refresh:
-        logging.info('Refresh feeds')
-        now = time.time()
-        items = refresh(conn)
-        update(items, now, conn)
-        showAll(items)
+        logger.info('Refresh feeds')
+        data_queue = queue.Queue()
+        refresher = Refresher(data_queue, logging.getLogger('refresher'))
+        shower = Shower(data_queue, logging.getLogger('shower'))
+        refresher.start()
+        shower.start()
 
+    
     if args.add_feed:
         logging.info('Add feed')
         feed_url = args.add_feed
@@ -158,7 +101,7 @@ def main():
         add_feed(feed_url, now, conn)
 
     conn.close()
-
+    
 
 if __name__ == "__main__":
     main()
