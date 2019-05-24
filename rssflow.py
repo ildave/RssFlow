@@ -108,16 +108,19 @@ def update(items, now, conn):
         conn.commit()
         cursor.close()
 
-def show(items):
+def showAll(items):
     for i in items:
-        print('-'* 40)
-        print('|[{}] - {}'.format(i.feedtitle, i.title))
-        print('-'* 40)
-        print(i.description)
-        print('.'*40)
-        print('\t{}'.format(datetime.datetime.fromtimestamp(i.updated)))
-        print('\t[{}]'.format(i.link))
-        print('='*40)
+        show(item)
+        
+def show(item):
+    print('-'* 40)
+    print('|[{}] - {}'.format(i.feedtitle, i.title))
+    print('-'* 40)
+    print(i.description)
+    print('.'*40)
+    print('\t{}'.format(datetime.datetime.fromtimestamp(i.updated)))
+    print('\t[{}]'.format(i.link))
+    print('='*40)
 
 def main():
     conn = sqlite3.connect('feeds.sqlite')
@@ -144,7 +147,7 @@ def main():
         now = time.time()
         items = refresh(conn)
         update(items, now, conn)
-        show(items)
+        showAll(items)
 
     if args.add_feed:
         logging.info('Add feed')
