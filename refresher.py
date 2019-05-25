@@ -51,7 +51,7 @@ class Refresher(threading.Thread):
                             
                 
                 self.update(row['id'], now)
-            time.sleep(10)
+            time.sleep(60)
 
     def stop(self):
         self.conn.close()
