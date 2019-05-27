@@ -19,6 +19,7 @@ class Refresher(threading.Thread):
         self.conn = sqlite3.connect('feeds.sqlite')
         self.conn.row_factory = sqlite3.Row
         while self.running:
+            print('%', flush=True)
             self.logger.info("Run")
             cursor = self.conn.execute("select count(*) FROM feeds")
             n = cursor.fetchone()[0]

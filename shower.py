@@ -11,6 +11,7 @@ class Shower(threading.Thread):
 
     def run(self):
         while self.running:
+            print('§', flush=True)
             self.logger.info("Run - {} items".format(self.queue.qsize()))
             if not self.queue.empty():
 
@@ -22,11 +23,11 @@ class Shower(threading.Thread):
         self.running = False
 
     def show(self, item):
-        print('-'* 40)
-        print('|[{}] - {}'.format(item.feedtitle, item.title))
-        print('-'* 40)
-        print(item.description)
-        print('.'*40)
-        print('\t{}'.format(datetime.datetime.fromtimestamp(item.updated)))
-        print('\t[{}]'.format(item.link))
-        print('='*40)
+        print('-'* 40, flush=True)
+        print('|[{}] - {}'.format(item.feedtitle, item.title), flush=True)
+        print('-'* 40, flush=True)
+        print(item.description, flush=True)
+        print('.'*40, flush=True)
+        print('\t{}'.format(datetime.datetime.fromtimestamp(item.updated)), flush=True)
+        print('\t[{}]'.format(item.link), flush=True)
+        print('='*40, flush=True)
