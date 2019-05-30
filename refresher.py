@@ -6,6 +6,7 @@ import feedparser
 import time
 import datetime
 import sqlite3
+import hashlib
 
 
 class Refresher(threading.Thread):
@@ -14,6 +15,7 @@ class Refresher(threading.Thread):
         self.queue = queue        
         self.logger = logger
         self.running = True
+        self.articles = set()
 
     def run(self):
         self.conn = sqlite3.connect('feeds.sqlite')
@@ -36,19 +38,26 @@ class Refresher(threading.Thread):
                         published = time.mktime(e.published_parsed)
                         self.logger.debug('Published: {} -  updated: {}'.format(datetime.datetime.fromtimestamp(published), datetime.datetime.fromtimestamp(row['updated'])))
                         if 'link' in e and published > row['updated']:
-                            feed = Feed(e.link)
-                            if 'description' in e:
-                                feed.description = strip.strip_html(e.description)
-                            if 'title' in e:
-                                feed.title = e.title
-                            feed.updated = published
-                            feed.feedid = row['id']
-                            feed.feedtitle = row['feedname']
-                            feed.feedurl = row['url']
-                            self.logger.info('Add item to queue')
-                            self.logger.debug('\t{}'.format(feed.link))
-                            self.logger.debug('\t{}'.format(feed.description))
-                            self.queue.put(feed)
+                            md5 = hashlib.md5(e.link.encode('utf-8')).hexdigest()
+                            if  md5 not in self.articles:
+                                self.logger.debug('New article, adding it')
+                                self.articles.add(md5)
+                                feed = Feed(e.link)
+                                if 'description' in e:
+                                    feed.description = strip.strip_html(e.description)
+                                if 'title' in e:
+                                    feed.title = e.title
+                                feed.updated = published
+                                feed.feedid = row['id']
+                                feed.feedtitle = row['feedname']
+                                feed.feedurl = row['url']
+
+                                self.logger.info('Add item to queue')
+                                self.logger.debug('\t{}'.format(feed.link))
+                                self.logger.debug('\t{}'.format(feed.description))
+                                self.queue.put(feed)
+                            else:
+                                self.logger.debug('Article already seen, skipping')
                             
                 
                 self.update(row['id'], now)
