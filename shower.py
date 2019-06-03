@@ -13,8 +13,7 @@ class Shower(threading.Thread):
         while self.running:
             print('§', flush=True)
             self.logger.info("Run - {} items".format(self.queue.qsize()))
-            if not self.queue.empty():
-
+            while not self.queue.empty():
                 item = self.queue.get()
                 self.show(item)
             time.sleep(60)
