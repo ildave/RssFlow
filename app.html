@@ -2,8 +2,38 @@
 <html>
     <head>
         <title></title>
+        <style>
+        .item {
+            width: 500px;
+            border: 1px solid black;
+            padding: 15px;
+            margin: auto;
+        }
+        </style>
     </head>
     <body>
-        
+        <script>
+            var ws = new WebSocket("ws://127.0.0.1:8066/");
+            ws.onmessage = function (event) {
+                console.log(event);
+                var cnt = JSON.parse(event.data);
+                var div = makeItem(cnt.link, cnt.description, cnt.feedtitle, cnt.title);
+                document.body.appendChild(div);
+            };
+            
+
+            function makeItem(url, description, feedtitle, title) {
+                var div = document.createElement('div');
+                div.setAttribute('class', 'item');
+                var h1 = document.createElement('h1');
+                var a = document.createElement('a');
+                h1.appendChild(document.createTextNode(feedtitle + ' - ' + title));
+                a.setAttribute('href', url);
+                a.appendChild(h1);
+                div.appendChild(a);
+                div.appendChild(document.createTextNode(description));
+                return div;
+            }
+        </script>
     </body>
 </html>
