@@ -10,7 +10,7 @@ async def send_items(websocket, path):
     global data_queue
     while True:
         print('§', flush=True)
-        if not data_queue.empty():
+        while not data_queue.empty():
             item = data_queue.get()
             print(json.dumps(item.to_dict()))
             await websocket.send(json.dumps(item.to_dict()))
